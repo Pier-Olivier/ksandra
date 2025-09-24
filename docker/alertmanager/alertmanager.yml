@@ -1,0 +1,19 @@
+global:
+  smtp_smarthost: '${SMTP_SMARTHOST}'
+  smtp_from: '${SMTP_FROM}'
+  smtp_require_tls: true
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+
+route:
+  receiver: team-email
+  group_by: ['alertname']
+  group_wait: 0s
+  group_interval: 1m
+  repeat_interval: 1h
+
+receivers:
+  - name: team-email
+    email_configs:
+      - to: '${ALERT_TO}'
+        send_resolved: false

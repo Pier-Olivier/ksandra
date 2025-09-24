@@ -1,0 +1,76 @@
+name: ksandra
+
+networks:
+
+  network:
+    driver: bridge
+    enable_ipv6: false
+    ipam:
+      driver: default
+      config:
+        - subnet: "${SUBNET_IP}.0/16"
+          gateway: "${SUBNET_IP}.1"
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    restart: ${RESTARTING}
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/start.sh:/usr/local/bin/prometheus-start.sh:ro
+      - prometheus_data:/prometheus
+    entrypoint:
+      - /bin/sh
+      - /usr/local/bin/prometheus-start.sh
+    environment:
+      - TARGETS=${TARGETS}
+      - SSL_DAYS=${SSL_DAYS}
+      - PROM_PWD_HASH=${PROM_PWD_HASH}
+    depends_on:
+      - blackbox
+      - alertmanager
+    networks:
+      - network
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: ${RESTARTING}
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./alertmanager/start.sh:/usr/local/bin/alertmanager-start.sh:ro
+    entrypoint:
+      - /bin/sh
+      - /usr/local/bin/alertmanager-start.sh
+    environment:
+      - SMTP_SMARTHOST=${SMTP_SMARTHOST}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - ALERT_TO=${ALERT_TO}
+      - PROM_PWD_HASH=${PROM_PWD_HASH}
+    networks:
+      - network
+
+  blackbox:
+    image: prom/blackbox-exporter:v0.25.0
+    restart: ${RESTARTING}
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+      - ./blackbox/start.sh:/usr/local/bin/blackbox-start.sh:ro
+    entrypoint:
+      - /bin/sh
+      - /usr/local/bin/blackbox-start.sh
+    environment:
+      - PROM_PWD_HASH=${PROM_PWD_HASH}
+    networks:
+      - network
+
+volumes:
+  prometheus_data:
